@@ -10,17 +10,32 @@ from dash_bootstrap_templates import load_figure_template
 import graph_vars
 
 # actual app
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets = [dbc.themes.BOOTSTRAP])
 server = app.server
 
 app.layout = dbc.Container([
     html.H1('This mood tracker will eventually go kinda hard'),
     html.Br(),
-    dcc.Graph(
-        id = 'mood', 
-        figure = graph_vars.fig,
-    )
+    dbc.Row([
+        dbc.Col([
+            html.H3('Mood Meter'),
+            dcc.Graph(
+                id = 'mood', 
+                figure = graph_vars.fig
+            )
+        ], width=6),
+        dbc.Col([
+            html.Div("Current mood: ", id='chosen_mood')
+        ], width=6)
+    ])
 ])
+
+@app.callback(
+    Output('chosen_mood', 'children'),
+    Input('mood', 'clickData')
+)
+def update_text(click):
+    return str(click)
 
 if __name__ == '__main__':
     app.run_server(debug=True)

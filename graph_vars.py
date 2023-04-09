@@ -1,3 +1,4 @@
+import numpy as np
 import plotly.graph_objects as go
 
 # mood labels
@@ -15,7 +16,7 @@ graph_text = [
     "It really do<br>be like that<br>sometimes", "It is<br>what it is",
     "Bitches love<br>my mustache", "Silly goose",
     "aight", "cool",
-    "Straight chillin", "We're gonna<br>make it bro",
+    "Straight<br>chillin", "We're gonna<br>make it bro",
     "We're so back", "Let's<br>gooooooo",
     "I'm<br>bing chillin", "We vibin",
     "neat", "Modelo time",
@@ -53,8 +54,16 @@ for i in range(36):
         type="rect",
         x0 = i // 6, y0 = i % 6, x1 = (i // 6) + 1, y1 = (i % 6) + 1,
         label = dict(text = graph_text[i], font_color='black', font_size=12),
-        fillcolor = graph_colors[i//6][i % 6]
+        fillcolor = graph_colors[i//6][i % 6],
+        layer="below"
     )
+
+GS=60
+fig.add_trace(go.Scatter(
+    x=np.repeat(np.linspace(0, 6, GS), GS), 
+    y=np.tile(np.linspace(0, 6, GS), GS),
+    marker_color="rgba(0,0,0,0)"
+))
 
 fig.update_layout(
     width = 600, 

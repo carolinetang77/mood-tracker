@@ -58,14 +58,23 @@ for i in range(36):
         layer="below"
     )
 
-GS=60
+GS=65
 fig.add_trace(go.Scatter(
-    x=np.repeat(np.linspace(0, 6, GS), GS), 
-    y=np.tile(np.linspace(0, 6, GS), GS),
-    marker_color="rgba(0,0,0,0)"
+    x = np.repeat(np.linspace(0, 6, GS), GS), 
+    y = np.tile(np.linspace(0, 6, GS), GS),
+    mode = 'markers',
+    marker_color = "rgb(0,0,0)",
+    marker_opacity = 0,
+    marker_size = 15,
+    hovertemplate = "Mood: %{x:.2f}<br>Energy: %{y:.2f}<extra></extra>",
+    selected = dict(marker = dict(opacity = 0.7)),
+    unselected = dict(marker = dict(opacity = 0))
 ))
 
 fig.update_layout(
+    clickmode = 'event+select',
+    dragmode = False,
+    modebar_remove=['select2d', 'lasso2d'],
     width = 600, 
     height = 600,
     margin = dict(t = 0, b = 10, l = 10, r = 10)

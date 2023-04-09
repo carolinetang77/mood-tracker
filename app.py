@@ -9,6 +9,8 @@ from dash import dash, dcc, dash_table, html, Input, Output, State
 from dash_bootstrap_templates import load_figure_template
 import graph_vars
 
+fig = graph_vars.fig
+
 # actual app
 app = dash.Dash(__name__, external_stylesheets = [dbc.themes.BOOTSTRAP])
 server = app.server
@@ -21,7 +23,7 @@ app.layout = dbc.Container([
             html.H3('Mood Meter'),
             dcc.Graph(
                 id = 'mood', 
-                figure = graph_vars.fig
+                figure = fig
             )
         ], width=6),
         dbc.Col([
@@ -32,10 +34,15 @@ app.layout = dbc.Container([
 
 @app.callback(
     Output('chosen_mood', 'children'),
-    Input('mood', 'clickData')
+    Input('mood', 'selectedData')
 )
 def update_text(click):
-    return str(click)
+    x = None
+    y = None
+    if click:
+        x = click['points'][0]['x']
+        y = click['points'][0]['y']
+    return f"Mood: {round(x, 2) if x else x} Energy: {round(y, 2) if y else y}"
 
 if __name__ == '__main__':
     app.run_server(debug=True)

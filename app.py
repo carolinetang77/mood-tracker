@@ -3,6 +3,7 @@
 
 import os
 import plotly.graph_objects as go
+import math
 import pandas as pd
 import dash_bootstrap_components as dbc
 from dash import dash, dcc, dash_table, html, Input, Output, State
@@ -27,22 +28,54 @@ app.layout = dbc.Container([
             )
         ], width=6),
         dbc.Col([
-            html.Div("Current mood: ", id='chosen_mood')
+            html.Div("Mood: None Energy: None", id='numeric_mood'),
+            html.Div("Selected mood:"),
+            html.Div("", id='text_mood'),
+            dbc.Button(
+                "Track mood",
+                id="track-button",
+                color="info",
+                size="sm"
+            )
+            # dash_table.DataTable(
+            #     id='table', 
+            #     columns=[{"name": col.title(), "id": col}],
+            #     sort_action="native",
+            #     page_size=15,
+            #     fixed_rows={'headers': True},
+            #     style_cell={'textAlign': 'left'}
+            # )
         ], width=6)
     ])
 ])
 
 @app.callback(
-    Output('chosen_mood', 'children'),
+    Output('numeric_mood', 'children'),
+    # Output('text_mood', 'children'),
     Input('mood', 'selectedData')
 )
-def update_text(click):
+def update_numeric_mood(selected):
     x = None
     y = None
-    if click:
-        x = click['points'][0]['x']
-        y = click['points'][0]['y']
-    return f"Mood: {round(x, 2) if x else x} Energy: {round(y, 2) if y else y}"
+    # text = "Please select one or more locations on the graph."
+    if selected:
+        x = [i['x'] for i in selected['points']]
+        y = [i['y'] for i in selected['points']]
+        # text = [graph_vars.graph_text[6 * math.floor(x[i]) + math.floor(y[i])] for i in range(len(x))]
+    return f"Mood: {x} Energy: {y}"
+
+@app.callback(
+    Output('text_mood', 'children'),
+    Input('track-button', 'n_clicks'),
+    State('mood', 'selectedData')
+)
+def update_text_mood(n, selected):
+    text = "Please select one or more locations on the graph."
+    if selected:
+        x = [i['x'] for i in selected['points']]
+        y = [i['y'] for i in selected['points']]
+        text = [graph_vars.graph_text[6 * math.floor(x[i]) + math.floor(y[i])] for i in range(len(x))]
+    return f"{text}"
 
 if __name__ == '__main__':
     app.run_server(debug=True)

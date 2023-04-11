@@ -6,8 +6,10 @@ import plotly.graph_objects as go
 import math
 import datetime as dt
 import pandas as pd
+import flask
+import json
 import dash_bootstrap_components as dbc
-from dash import dash, dcc, dash_table, html, Input, Output, State
+from dash import dash, dcc, dash_table, html, Input, Output, State, callback_context
 from dash_bootstrap_templates import load_figure_template
 import mood_picker
 
@@ -78,7 +80,12 @@ def update_mood_text(selected):
 )
 def update_mood_table(n, selected, moods):
     if not moods:
-        moods = mood_time
+        all_cookies = dict(flask.request.cookies)
+        if 'mood-tracker-cookie' in all_cookies:
+            moods = pd.DataFrame(eval(json.loads(all_cookies['mood-tracker-cookie'])))
+            print(moods)
+        else:
+            moods = mood_time
     if selected:
         x = [i['x'] for i in selected['points']]
         y = [i['y'] for i in selected['points']]
@@ -91,7 +98,8 @@ def update_mood_table(n, selected, moods):
                 'Energy': y,
                 'Vibe': text
             })
-        ))
+        ), ignore_index=True)
+    callback_context.response.set_cookie('mood-tracker-cookie', json.dumps(moods.to_json(orient='records')))
     return moods.to_dict('records'), None, fig.update_traces(selectedpoints=[])
 
 if __name__ == '__main__':

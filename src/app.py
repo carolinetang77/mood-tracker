@@ -26,16 +26,14 @@ app.layout = dbc.Container([
     html.Br(),
     dbc.Row([
         dbc.Col([
-            html.H3('Mood Meter'),
+            html.H4('Mood Meter'),
             dcc.Graph(
                 id = 'mood', 
                 figure = fig
             )
         ], width=6),
         dbc.Col([
-            html.Div("Selected vibes:"),
-            html.Div("", id='text_mood'),
-            html.Div("Mood: None Energy: None", id='numeric_mood'),
+            html.H4("Selected mood(s)"),
             dbc.Button(
                 "Track mood",
                 id="track-button",
@@ -43,7 +41,23 @@ app.layout = dbc.Container([
                 size="sm"
             ),
             dash_table.DataTable(
-                id='table', 
+                id='temp-table', 
+                columns=[{"name": col, "id": col} for col in sorted(mood_time.keys())],
+                sort_action="native",
+                page_size=15,
+                fixed_rows={'headers': True},
+                style_cell={'textAlign': 'left'}
+            ),
+            html.Br(),
+            html.H4("Tracked moods"),
+            dbc.Button(
+                "Clear cookies",
+                id="clear-cookies",
+                color="danger",
+                size="sm"
+            ),
+            dash_table.DataTable(
+                id='saved-table', 
                 columns=[{"name": col, "id": col} for col in sorted(mood_time.keys())],
                 sort_action="native",
                 page_size=15,
@@ -55,49 +69,49 @@ app.layout = dbc.Container([
 ])
 
 @app.callback(
-    Output('numeric_mood', 'children'),
-    Output('text_mood', 'children'),
+    Output('temp-table', 'data'),
     Input('mood', 'selectedData')
 )
 def update_mood_text(selected):
-    x = None
-    y = None
-    text = """Please select one or more locations on the graph. 
-    You can select multiple locations by holding down shift while clicking on the graph."""
+    x = []
+    y = []
+    text = []
+    times = []
     if selected:
         x = [i['x'] for i in selected['points']]
         y = [i['y'] for i in selected['points']]
         text = [mood_picker.graph_text[6 * math.floor(x[i]) + math.floor(y[i])].replace('<br>', " ") for i in range(len(x))]
-    return f"Mood: {x} Energy: {y}", f"{text}"
+        times.append(dt.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    temp_moods = pd.DataFrame({
+        'Datetime': times * len(x),
+        'Mood': x,
+        'Energy': y,
+        'Vibe': text
+    })
+    return temp_moods.to_dict('records')
 
 @app.callback(
-    Output('table', 'data'),
+    Output('saved-table', 'data'),
     Output('mood', 'selectedData'),
     Output('mood', 'figure'),
     Input('track-button', 'n_clicks'),
-    State('mood', 'selectedData'),
-    State('table', 'data')
+    State('temp-table', 'data'),
+    State('saved-table', 'data')
 )
 def update_mood_table(n, selected, moods):
     if not moods:
         all_cookies = dict(flask.request.cookies)
         if 'mood-tracker-cookie' in all_cookies:
             moods = pd.DataFrame(eval(json.loads(all_cookies['mood-tracker-cookie'])))
-            print(moods)
         else:
             moods = mood_time
+    else:
+        moods = pd.DataFrame(moods)
     if selected:
-        x = [i['x'] for i in selected['points']]
-        y = [i['y'] for i in selected['points']]
-        text = [mood_picker.graph_text[6 * math.floor(x[i]) + math.floor(y[i])].replace('<br>', " ") for i in range(len(x))]
+        print(selected)
         moods = pd.concat((
             pd.DataFrame(moods),
-            pd.DataFrame({
-                'Datetime': [dt.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')] * len(x),
-                'Mood': x,
-                'Energy': y,
-                'Vibe': text
-            })
+            pd.DataFrame(selected)
         ), ignore_index=True)
     callback_context.response.set_cookie('mood-tracker-cookie', json.dumps(moods.to_json(orient='records')))
     return moods.to_dict('records'), None, fig.update_traces(selectedpoints=[])

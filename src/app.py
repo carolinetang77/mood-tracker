@@ -9,7 +9,7 @@ import pandas as pd
 import flask
 import json
 import dash_bootstrap_components as dbc
-from dash import dash, dcc, dash_table, html, Input, Output, State, callback_context
+from dash import dash, dcc, dash_table, html, Input, Output, State, ctx
 from dash_bootstrap_templates import load_figure_template
 import mood_picker
 
@@ -68,6 +68,7 @@ app.layout = dbc.Container([
     ])
 ])
 
+# update selected table as points are chosen on the graph
 @app.callback(
     Output('temp-table', 'data'),
     Input('mood', 'selectedData')
@@ -90,30 +91,39 @@ def update_mood_text(selected):
     })
     return temp_moods.to_dict('records')
 
+# update the saved data table if the track button is clicked
+# delete cookies if that button is clicked (is there a way to split these up)
 @app.callback(
     Output('saved-table', 'data'),
     Output('mood', 'selectedData'),
     Output('mood', 'figure'),
     Input('track-button', 'n_clicks'),
+    Input('clear-cookies', 'n_clicks'),
     State('temp-table', 'data'),
-    State('saved-table', 'data')
+    State('saved-table', 'data'),
 )
-def update_mood_table(n, selected, moods):
-    if not moods:
+def update_mood_table(n_1, n_2, selected, moods):
+    button_clicked = ctx.triggered_id
+    if button_clicked == "clear-cookies":
         all_cookies = dict(flask.request.cookies)
         if 'mood-tracker-cookie' in all_cookies:
-            moods = pd.DataFrame(eval(json.loads(all_cookies['mood-tracker-cookie'])))
-        else:
+            ctx.response.delete_cookie('mood-tracker-cookie')
             moods = mood_time
     else:
-        moods = pd.DataFrame(moods)
-    if selected:
-        print(selected)
-        moods = pd.concat((
-            pd.DataFrame(moods),
-            pd.DataFrame(selected)
-        ), ignore_index=True)
-    callback_context.response.set_cookie('mood-tracker-cookie', json.dumps(moods.to_json(orient='records')))
+        if not moods:
+            all_cookies = dict(flask.request.cookies)
+            if 'mood-tracker-cookie' in all_cookies and all_cookies['mood-tracker-cookie'] is not None:
+                moods = pd.DataFrame(eval(json.loads(all_cookies['mood-tracker-cookie'])))
+            else:
+                moods = mood_time
+        else:
+            moods = pd.DataFrame(moods)
+        if selected:
+            moods = pd.concat((
+                pd.DataFrame(moods),
+                pd.DataFrame(selected)
+            ), ignore_index=True)
+        ctx.response.set_cookie('mood-tracker-cookie', json.dumps(moods.to_json(orient='records')))
     return moods.to_dict('records'), None, fig.update_traces(selectedpoints=[])
 
 if __name__ == '__main__':
